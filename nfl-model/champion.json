@@ -1,0 +1,20 @@
+{
+  "config": {
+    "elo_k": 24,
+    "features": [
+      "elo_diff",
+      "rest_diff",
+      "div_game",
+      "margin_diff"
+    ],
+    "C": 0.1
+  },
+  "val_brier": 0.2264,
+  "val_seasons": "2019-2023",
+  "test_seasons": "2024-2025",
+  "test_brier": 0.2155,
+  "test_accuracy": 0.6608,
+  "market_brier": 0.2059,
+  "n_test_games": 569,
+  "promoted_on": "2026-07-06"
+}

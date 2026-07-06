@@ -27,6 +27,7 @@ python3 train.py           # train, evaluate, write test predictions
 | `download_data.py` | Fetches the [nflverse](https://github.com/nflverse/nfldata) games dataset: scores, rest days, and Vegas lines for every game since 1999 |
 | `features.py` | Builds pre-game features: **Elo ratings** (computed chronologically so there's no data leakage), rest-day difference, divisional-game flag |
 | `train.py` | Trains a logistic regression on 1999–2023, tests on 2024–2025, and compares against two baselines: "always pick the home team" and the vig-free probability implied by the Vegas moneyline |
+| `improve.py` | The self-improvement loop: a champion-vs-challengers tournament over Elo settings, feature sets, and regularization, scored by walk-forward validation. Promotes a new champion only when it wins on validation seasons; logs every run to `history.csv` and `RESULTS.md` |
 
 ## First results (test seasons 2024–2025, never seen in training)
 
@@ -47,17 +48,34 @@ Calibration is honest too — when the model says 65%, that side wins about
 65% of the time. The one soft spot is the 40–50% bucket (toss-up games it
 slightly mis-ranks), which is a good first thing to investigate.
 
-## Ideas for next steps
+## Getting 0.1% better every week, automatically
+
+A [GitHub Action](../.github/workflows/improve-nfl-model.yml) runs every
+Tuesday (after Monday Night Football): it downloads fresh data, runs the
+`improve.py` tournament, and commits the results. The current champion
+and full run history live in [`RESULTS.md`](RESULTS.md).
+
+The improvement loop is built to be honest with itself:
+
+- Challengers are scored with **walk-forward validation** — each
+  validation season is predicted using only seasons that came before it.
+- A challenger is promoted only if it beats the reigning champion on
+  validation. The **test seasons are never used to pick winners** — they
+  exist only to report how the champion would have done live.
+- Splits roll forward on their own: the two most recent seasons are
+  always the test set, the five before that are validation.
+
+First tournament result: adding a rolling point-margin feature
+(`margin_diff`) beat the original model — test Brier improved from
+0.2198 to 0.2155 (66.1% accuracy).
+
+## Ideas for the next challenger
 
 - **QB adjustment** — the single biggest thing Elo misses. A backup QB
   starting is worth several points; the dataset has `home_qb_name` /
   `away_qb_name` ready to use.
-- **Point-differential features** — rolling average margin over the last
-  N games catches form that win/loss Elo smooths over.
 - **Compare picks to the market weekly** — flag games where the model
   disagrees with the moneyline by enough to clear the vig, log them, and
   track results over a season (paper only).
 - **Closing line value** — the metric pros use: do the model's picks beat
   the closing line, even before results come in?
-- **Auto-retrain** — a GitHub Action that re-downloads data weekly during
-  the season and updates this README with the model's running record.
