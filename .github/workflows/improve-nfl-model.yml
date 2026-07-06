@@ -31,11 +31,16 @@ jobs:
         working-directory: nfl-model
         run: python improve.py
 
+      - name: Update paper-trade ledger
+        working-directory: nfl-model
+        run: python ledger.py
+
       - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add nfl-model/champion.json nfl-model/history.csv nfl-model/RESULTS.md
+          git add nfl-model/champion.json nfl-model/history.csv nfl-model/RESULTS.md \
+                  nfl-model/ledger.csv nfl-model/LEDGER.md
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

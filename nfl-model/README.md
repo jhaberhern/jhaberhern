@@ -29,6 +29,7 @@ python3 train.py           # train, evaluate, write test predictions
 | `train.py` | Trains a logistic regression on 1999–2023, tests on 2024–2025, and compares against two baselines: "always pick the home team" and the vig-free probability implied by the Vegas moneyline |
 | `improve.py` | The self-improvement loop: a champion-vs-challengers tournament over Elo settings, feature sets, and regularization, scored by walk-forward validation. Promotes a new champion only when it wins on validation seasons; logs every run to `history.csv` and `RESULTS.md` |
 | `parlay.py` | Builds parlays from the champion's win probabilities. `--backtest` replays the test seasons week by week and settles each parlay at real moneyline payouts; default mode prints picks (and EV, once lines are posted) for the next scheduled week |
+| `ledger.py` | The paper-trade ledger: logs the champion's pick for every priced game of the upcoming week, then grades each pick against the result *and the closing line* (CLV). Season-to-date record lives in [`LEDGER.md`](LEDGER.md) |
 
 ## First results (test seasons 2024–2025, never seen in training)
 
@@ -103,6 +104,21 @@ Three honest lessons in that table:
 
 The constructive takeaway: the route to parlays worth taking is a model
 that beats the market *per game* first. Until then, this stays paper.
+
+## The bankroll gates
+
+The long-term goal is a model that pays for itself. That claim gets
+earned through gates, not vibes:
+
+1. **Gate 1 — beat the market on paper:** champion Brier better than the
+   closing line's, or demonstrably positive closing line value (CLV).
+   *Currently below this gate.*
+2. **Gate 2 — a full season of receipts:** `ledger.py` logs every pick
+   in advance and grades it against the result and the closing line.
+   Sustained positive CLV over a season is the only pass mark — a
+   winning record without CLV is variance wearing a suit.
+3. **Gate 3 — minimum stakes,** sized by Kelly, only after Gate 2, and
+   the stakes never grow faster than the evidence.
 
 ## Ideas for the next challenger
 
