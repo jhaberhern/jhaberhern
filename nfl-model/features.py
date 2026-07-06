@@ -133,6 +133,32 @@ def add_qb_change(games: pd.DataFrame) -> pd.DataFrame:
     return games
 
 
+def add_qb_value(games: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """A per-QB rating: average team point margin over his last `n` starts.
+
+    Distinguishes losing a star from losing a journeyman — a QB who has
+    never started (or is new to the league) sits at 0, while an
+    established starter carries the form of his recent starts with him,
+    even across a team change. Crude (it credits the QB with the whole
+    team's margin) but pre-game and leak-free.
+    """
+    from collections import defaultdict, deque
+    starts: dict[str, deque] = defaultdict(lambda: deque(maxlen=n))
+    home_v, away_v = [], []
+
+    for game in games.itertuples():
+        h, a = starts[game.home_qb_id], starts[game.away_qb_id]
+        home_v.append(sum(h) / len(h) if h else 0.0)
+        away_v.append(sum(a) / len(a) if a else 0.0)
+        h.append(game.result)
+        a.append(-game.result)
+
+    games = games.copy()
+    games["qb_val_diff"] = pd.Series(home_v, index=games.index) - pd.Series(
+        away_v, index=games.index)
+    return games
+
+
 def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
                   regression: float = SEASON_REGRESSION,
                   mov: bool = False) -> pd.DataFrame:
@@ -143,6 +169,7 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
     games = add_elo(games, k=elo_k, hfa=elo_hfa, regression=regression, mov=mov)
     games = add_rolling_margin(games)
     games = add_qb_change(games)
+    games = add_qb_value(games)
 
     games["rest_diff"] = games["home_rest"] - games["away_rest"]
     games["home_win"] = (games["result"] > 0).astype(int)
@@ -152,7 +179,7 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
         "game_id", "season", "week", "home_team", "away_team",
         "elo_diff", "rest_diff", "div_game",
         "margin_diff_3", "margin_diff", "margin_diff_10",
-        "home_qb_new", "away_qb_new",
+        "home_qb_new", "away_qb_new", "qb_val_diff",
         "home_moneyline", "away_moneyline",
         "home_win",
     ]

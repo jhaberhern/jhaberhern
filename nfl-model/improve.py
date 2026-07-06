@@ -56,6 +56,8 @@ FEATURE_SETS = [
     BASE + ("margin_diff_3", "margin_diff_10"),
     BASE + ("margin_diff",) + QB,
     BASE + ("margin_diff_3", "margin_diff", "margin_diff_10") + QB,
+    BASE + ("margin_diff", "qb_val_diff"),
+    BASE + ("margin_diff",) + QB + ("qb_val_diff",),
 ]
 MODELS = [
     {"model": "logreg", "C": 0.1},
