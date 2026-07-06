@@ -28,6 +28,7 @@ python3 train.py           # train, evaluate, write test predictions
 | `features.py` | Builds pre-game features: **Elo ratings** (computed chronologically so there's no data leakage), rest-day difference, divisional-game flag |
 | `train.py` | Trains a logistic regression on 1999–2023, tests on 2024–2025, and compares against two baselines: "always pick the home team" and the vig-free probability implied by the Vegas moneyline |
 | `improve.py` | The self-improvement loop: a champion-vs-challengers tournament over Elo settings, feature sets, and regularization, scored by walk-forward validation. Promotes a new champion only when it wins on validation seasons; logs every run to `history.csv` and `RESULTS.md` |
+| `parlay.py` | Builds parlays from the champion's win probabilities. `--backtest` replays the test seasons week by week and settles each parlay at real moneyline payouts; default mode prints picks (and EV, once lines are posted) for the next scheduled week |
 
 ## First results (test seasons 2024–2025, never seen in training)
 
@@ -73,6 +74,35 @@ The tournament's challenger axes so far: Elo speed (K), margin-of-victory
 Elo updates, rolling point-margin windows (3/5/10 games), QB-change
 flags, regularization strength, and gradient boosting vs logistic
 regression. The current best blend lives in `champion.json`.
+
+## The parlay question
+
+The end goal is picking parlays, so `parlay.py` faces the math head-on:
+the book's edge **compounds per leg** (~4.5% on one -110 bet, ~13% on a
+3-leg parlay). Backtesting one parlay per week over 2024–2025, three
+ways of choosing legs:
+
+| Strategy | 3-leg hit rate | 3-leg ROI |
+|----------|---------------:|----------:|
+| Model's most confident picks | 57% | +14% |
+| Biggest market favorites (control) | 57% | +1% |
+| Biggest model-vs-market disagreements | 2% | −85% |
+
+Three honest lessons in that table:
+
+1. **~40 parlays is a tiny sample.** The positive ROI rows are luck-
+   assisted: favorites hit well above the model's own expected rates in
+   these seasons (57% actual vs 49% expected), and the model itself
+   would predict thinner margins long-run. Do not read +14% as an edge.
+2. **"Most likely parlay" ≠ profitable parlay.** Stacking favorites
+   maximizes hit rate, but the payout is priced for it.
+3. **Chasing disagreements with the market is fatal.** When a model
+   that's weaker than the market (Brier 0.214 vs 0.206) disagrees with
+   it, the model is usually the one that's wrong — and parlays multiply
+   that mistake. The −85% row is the tuition bill.
+
+The constructive takeaway: the route to parlays worth taking is a model
+that beats the market *per game* first. Until then, this stays paper.
 
 ## Ideas for the next challenger
 

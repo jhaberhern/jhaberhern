@@ -57,6 +57,9 @@ def add_elo(games: pd.DataFrame, k: float = ELO_K,
         home_elo.append(h)
         away_elo.append(a)
 
+        if pd.isna(game.result):
+            continue  # unplayed game: record pre-game ratings, no update
+
         # Update ratings from the result (result = home score - away score)
         expected_home = 1 / (1 + 10 ** (-(h - a + hfa) / 400))
         actual_home = 0.5 if game.result == 0 else float(game.result > 0)
@@ -99,6 +102,8 @@ def add_rolling_margin(games: pd.DataFrame) -> pd.DataFrame:
         h, a = recent[game.home_team], recent[game.away_team]
         for n in MARGIN_WINDOWS:
             diffs[n].append(avg_last(h, n) - avg_last(a, n))
+        if pd.isna(game.result):
+            continue  # unplayed game: no margin to record
         h.append(game.result)       # home margin
         a.append(-game.result)      # away margin
 
@@ -120,12 +125,13 @@ def add_qb_change(games: pd.DataFrame) -> pd.DataFrame:
     home_new, away_new = [], []
 
     for game in games.itertuples():
-        home_new.append(float(last_qb.get(game.home_team, game.home_qb_id)
-                              != game.home_qb_id))
-        away_new.append(float(last_qb.get(game.away_team, game.away_qb_id)
-                              != game.away_qb_id))
-        last_qb[game.home_team] = game.home_qb_id
-        last_qb[game.away_team] = game.away_qb_id
+        for team, qb, out in ((game.home_team, game.home_qb_id, home_new),
+                              (game.away_team, game.away_qb_id, away_new)):
+            if pd.isna(qb):
+                out.append(0.0)  # starter unannounced: assume the incumbent
+                continue
+            out.append(float(last_qb.get(team, qb) != qb))
+            last_qb[team] = qb
 
     games = games.copy()
     games["home_qb_new"] = home_new
@@ -144,14 +150,25 @@ def add_qb_value(games: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     """
     from collections import defaultdict, deque
     starts: dict[str, deque] = defaultdict(lambda: deque(maxlen=n))
+    last_starter: dict[str, str] = {}
     home_v, away_v = [], []
 
     for game in games.itertuples():
-        h, a = starts[game.home_qb_id], starts[game.away_qb_id]
+        # Starter unannounced (future game): assume the incumbent
+        home_qb = game.home_qb_id if pd.notna(game.home_qb_id) \
+            else last_starter.get(game.home_team)
+        away_qb = game.away_qb_id if pd.notna(game.away_qb_id) \
+            else last_starter.get(game.away_team)
+        h = starts[home_qb] if home_qb else []
+        a = starts[away_qb] if away_qb else []
         home_v.append(sum(h) / len(h) if h else 0.0)
         away_v.append(sum(a) / len(a) if a else 0.0)
-        h.append(game.result)
-        a.append(-game.result)
+        if pd.isna(game.result):
+            continue  # unplayed game: nothing to record
+        starts[home_qb].append(game.result)
+        starts[away_qb].append(-game.result)
+        last_starter[game.home_team] = home_qb
+        last_starter[game.away_team] = away_qb
 
     games = games.copy()
     games["qb_val_diff"] = pd.Series(home_v, index=games.index) - pd.Series(
@@ -161,9 +178,13 @@ def add_qb_value(games: pd.DataFrame, n: int = 10) -> pd.DataFrame:
 
 def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
                   regression: float = SEASON_REGRESSION,
-                  mov: bool = False) -> pd.DataFrame:
+                  mov: bool = False,
+                  include_upcoming: bool = False) -> pd.DataFrame:
+    """Feature matrix for every game. Unplayed games get pre-game features
+    (current Elo, current form, incumbent QB) but never affect anyone's
+    ratings; with include_upcoming=True they're returned too, with
+    home_win = NaN."""
     games = pd.read_csv(DATA)
-    games = games[games["result"].notna()]  # played games only
     games = games.sort_values(["season", "week", "gameday"]).reset_index(drop=True)
 
     games = add_elo(games, k=elo_k, hfa=elo_hfa, regression=regression, mov=mov)
@@ -172,9 +193,13 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
     games = add_qb_value(games)
 
     games["rest_diff"] = games["home_rest"] - games["away_rest"]
-    games["home_win"] = (games["result"] > 0).astype(int)
+    games["home_win"] = (games["result"] > 0).astype(float).where(
+        games["result"].notna())
 
-    games = games[games["result"] != 0]  # drop ties
+    games = games[games["result"] != 0]  # drop ties (keeps unplayed games)
+    if not include_upcoming:
+        games = games[games["result"].notna()]
+        games["home_win"] = games["home_win"].astype(int)
     keep = [
         "game_id", "season", "week", "home_team", "away_team",
         "elo_diff", "rest_diff", "div_game",
