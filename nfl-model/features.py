@@ -13,6 +13,8 @@ Features produced:
 Target:
     home_win   -- 1 if the home team won (ties are dropped; they're rare)
 """
+import math
+
 import pandas as pd
 from pathlib import Path
 
@@ -27,11 +29,17 @@ SEASON_REGRESSION = 1 / 3  # each offseason, pull ratings back toward the mean
 
 def add_elo(games: pd.DataFrame, k: float = ELO_K,
             hfa: float = HOME_FIELD_ELO,
-            regression: float = SEASON_REGRESSION) -> pd.DataFrame:
+            regression: float = SEASON_REGRESSION,
+            mov: bool = False) -> pd.DataFrame:
     """Walk through games chronologically, tracking an Elo rating per team.
 
     Stores each team's rating *before* the game — that's the pre-game
     knowledge a bettor would have had.
+
+    With mov=True, the rating shift scales with margin of victory (a la
+    FiveThirtyEight): blowouts move ratings more than field goals, damped
+    when the favorite wins so strong teams don't inflate by running up
+    the score on weak ones.
     """
     ratings: dict[str, float] = {}
     last_season: dict[str, int] = {}
@@ -53,6 +61,10 @@ def add_elo(games: pd.DataFrame, k: float = ELO_K,
         expected_home = 1 / (1 + 10 ** (-(h - a + hfa) / 400))
         actual_home = 0.5 if game.result == 0 else float(game.result > 0)
         shift = k * (actual_home - expected_home)
+        if mov and game.result != 0:
+            winner_edge = (h - a + hfa) if game.result > 0 else -(h - a + hfa)
+            shift *= math.log(abs(game.result) + 1) * 2.2 / (
+                winner_edge * 0.001 + 2.2)
         ratings[game.home_team] += shift
         ratings[game.away_team] -= shift
 
@@ -63,38 +75,74 @@ def add_elo(games: pd.DataFrame, k: float = ELO_K,
     return games
 
 
-def add_rolling_margin(games: pd.DataFrame, n: int = 5) -> pd.DataFrame:
-    """Each team's average point margin over its last `n` games, pre-game.
+MARGIN_WINDOWS = (3, 5, 10)
+
+
+def add_rolling_margin(games: pd.DataFrame) -> pd.DataFrame:
+    """Each team's average point margin over its last N games, pre-game,
+    for several window sizes (short = hot streaks, long = true strength).
 
     Catches recent form that win/loss Elo smooths over (a team winning
     by 20 and a team winning by 1 look the same to Elo). Teams with no
-    history yet get 0 (neutral).
+    history yet get 0 (neutral). Column for window 5 keeps the plain
+    name `margin_diff` for continuity with earlier champions.
     """
     from collections import defaultdict, deque
-    recent: dict[str, deque] = defaultdict(lambda: deque(maxlen=n))
-    home_m, away_m = [], []
+    recent: dict[str, deque] = defaultdict(lambda: deque(maxlen=max(MARGIN_WINDOWS)))
+    diffs = {n: [] for n in MARGIN_WINDOWS}
+
+    def avg_last(dq, n):
+        window = list(dq)[-n:]
+        return sum(window) / len(window) if window else 0.0
 
     for game in games.itertuples():
         h, a = recent[game.home_team], recent[game.away_team]
-        home_m.append(sum(h) / len(h) if h else 0.0)
-        away_m.append(sum(a) / len(a) if a else 0.0)
+        for n in MARGIN_WINDOWS:
+            diffs[n].append(avg_last(h, n) - avg_last(a, n))
         h.append(game.result)       # home margin
         a.append(-game.result)      # away margin
 
     games = games.copy()
-    games["margin_diff"] = pd.Series(home_m, index=games.index) - pd.Series(
-        away_m, index=games.index)
+    for n in MARGIN_WINDOWS:
+        col = "margin_diff" if n == 5 else f"margin_diff_{n}"
+        games[col] = diffs[n]
+    return games
+
+
+def add_qb_change(games: pd.DataFrame) -> pd.DataFrame:
+    """Flag when a team starts a different QB than in its previous game.
+
+    A midseason QB switch usually means the starter got hurt or benched —
+    the single biggest thing team-level Elo misses. First game of a
+    season is also flagged if the starter changed over the offseason.
+    """
+    last_qb: dict[str, str] = {}
+    home_new, away_new = [], []
+
+    for game in games.itertuples():
+        home_new.append(float(last_qb.get(game.home_team, game.home_qb_id)
+                              != game.home_qb_id))
+        away_new.append(float(last_qb.get(game.away_team, game.away_qb_id)
+                              != game.away_qb_id))
+        last_qb[game.home_team] = game.home_qb_id
+        last_qb[game.away_team] = game.away_qb_id
+
+    games = games.copy()
+    games["home_qb_new"] = home_new
+    games["away_qb_new"] = away_new
     return games
 
 
 def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
-                  regression: float = SEASON_REGRESSION) -> pd.DataFrame:
+                  regression: float = SEASON_REGRESSION,
+                  mov: bool = False) -> pd.DataFrame:
     games = pd.read_csv(DATA)
     games = games[games["result"].notna()]  # played games only
     games = games.sort_values(["season", "week", "gameday"]).reset_index(drop=True)
 
-    games = add_elo(games, k=elo_k, hfa=elo_hfa, regression=regression)
+    games = add_elo(games, k=elo_k, hfa=elo_hfa, regression=regression, mov=mov)
     games = add_rolling_margin(games)
+    games = add_qb_change(games)
 
     games["rest_diff"] = games["home_rest"] - games["away_rest"]
     games["home_win"] = (games["result"] > 0).astype(int)
@@ -102,7 +150,9 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
     games = games[games["result"] != 0]  # drop ties
     keep = [
         "game_id", "season", "week", "home_team", "away_team",
-        "elo_diff", "rest_diff", "div_game", "margin_diff",
+        "elo_diff", "rest_diff", "div_game",
+        "margin_diff_3", "margin_diff", "margin_diff_10",
+        "home_qb_new", "away_qb_new",
         "home_moneyline", "away_moneyline",
         "home_win",
     ]

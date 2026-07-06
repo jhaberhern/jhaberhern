@@ -69,13 +69,20 @@ First tournament result: adding a rolling point-margin feature
 (`margin_diff`) beat the original model — test Brier improved from
 0.2198 to 0.2155 (66.1% accuracy).
 
+The tournament's challenger axes so far: Elo speed (K), margin-of-victory
+Elo updates, rolling point-margin windows (3/5/10 games), QB-change
+flags, regularization strength, and gradient boosting vs logistic
+regression. The current best blend lives in `champion.json`.
+
 ## Ideas for the next challenger
 
-- **QB adjustment** — the single biggest thing Elo misses. A backup QB
-  starting is worth several points; the dataset has `home_qb_name` /
-  `away_qb_name` ready to use.
+- **QB quality, not just QB change** — the flags catch a new starter but
+  not whether he's Mahomes or a practice-squad guy. A per-QB rating
+  (games started, or a QB-level Elo) is the natural upgrade.
 - **Compare picks to the market weekly** — flag games where the model
   disagrees with the moneyline by enough to clear the vig, log them, and
   track results over a season (paper only).
 - **Closing line value** — the metric pros use: do the model's picks beat
   the closing line, even before results come in?
+- **Situational features** — weather (wind), short-week road games,
+  post-bye rest, West Coast teams in early East Coast kickoffs.

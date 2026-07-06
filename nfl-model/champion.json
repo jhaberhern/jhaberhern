@@ -1,19 +1,23 @@
 {
   "config": {
-    "elo_k": 24,
+    "elo_k": 16,
+    "mov": true,
     "features": [
       "elo_diff",
       "rest_diff",
       "div_game",
-      "margin_diff"
+      "margin_diff",
+      "home_qb_new",
+      "away_qb_new"
     ],
+    "model": "logreg",
     "C": 0.1
   },
-  "val_brier": 0.2264,
+  "val_brier": 0.2239,
   "val_seasons": "2019-2023",
   "test_seasons": "2024-2025",
-  "test_brier": 0.2155,
-  "test_accuracy": 0.6608,
+  "test_brier": 0.2143,
+  "test_accuracy": 0.6573,
   "market_brier": 0.2059,
   "n_test_games": 569,
   "promoted_on": "2026-07-06"

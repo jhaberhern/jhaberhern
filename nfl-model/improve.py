@@ -23,8 +23,11 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from features import build_dataset
 from train import market_probs
@@ -37,19 +40,42 @@ RESULTS_FILE = HERE / "RESULTS.md"
 N_TEST_SEASONS = 2
 N_VAL_SEASONS = 5
 
-# The search space. Small on purpose: every axis is here because it has a
-# football reason to matter, and a small grid keeps validation meaningful.
-ELO_K = [16, 20, 24]                      # how fast ratings react
-FEATURE_SETS = [
-    ("elo_diff", "rest_diff", "div_game"),
-    ("elo_diff", "rest_diff", "div_game", "margin_diff"),
+# The search space. Every axis is here because it has a football reason
+# to matter; the grid stays deliberately modest because the more
+# challengers you audition, the more likely one wins validation by luck.
+ELO_VARIANTS = [
+    {"elo_k": k, "mov": mov}
+    for k in (16, 20, 24)
+    for mov in (False, True)   # mov: margin-of-victory-scaled Elo updates
 ]
-REG_C = [0.1, 1.0]                        # logistic regression regularization
+BASE = ("elo_diff", "rest_diff", "div_game")
+QB = ("home_qb_new", "away_qb_new")
+FEATURE_SETS = [
+    BASE,
+    BASE + ("margin_diff",),
+    BASE + ("margin_diff_3", "margin_diff_10"),
+    BASE + ("margin_diff",) + QB,
+    BASE + ("margin_diff_3", "margin_diff", "margin_diff_10") + QB,
+]
+MODELS = [
+    {"model": "logreg", "C": 0.1},
+    {"model": "logreg", "C": 1.0},
+    {"model": "gbdt"},   # can learn interactions logistic regression can't
+]
 
 
 def candidates():
-    for k, feats, c in itertools.product(ELO_K, FEATURE_SETS, REG_C):
-        yield {"elo_k": k, "features": list(feats), "C": c}
+    for elo, feats, model in itertools.product(ELO_VARIANTS, FEATURE_SETS, MODELS):
+        yield {**elo, "features": list(feats), **model}
+
+
+def make_model(cand: dict):
+    if cand["model"] == "gbdt":
+        return HistGradientBoostingClassifier(
+            max_depth=3, learning_rate=0.05, max_iter=200, random_state=0)
+    # Scale features so elo_diff (~hundreds) doesn't dwarf the 0/1 flags —
+    # without this the solver struggles to converge.
+    return make_pipeline(StandardScaler(), LogisticRegression(C=cand["C"]))
 
 
 def walk_forward_brier(df: pd.DataFrame, cand: dict, val_seasons: list[int]) -> float:
@@ -59,7 +85,7 @@ def walk_forward_brier(df: pd.DataFrame, cand: dict, val_seasons: list[int]) -> 
     for season in val_seasons:
         train = df[df["season"] < season]
         val = df[df["season"] == season]
-        model = LogisticRegression(C=cand["C"])
+        model = make_model(cand)
         model.fit(train[cand["features"]], train["home_win"])
         prob = model.predict_proba(val[cand["features"]])[:, 1]
         scores.append(brier_score_loss(val["home_win"], prob))
@@ -69,7 +95,7 @@ def walk_forward_brier(df: pd.DataFrame, cand: dict, val_seasons: list[int]) -> 
 def evaluate_on_test(df: pd.DataFrame, cand: dict, test_seasons: list[int]) -> dict:
     train = df[~df["season"].isin(test_seasons)]
     test = df[df["season"].isin(test_seasons)]
-    model = LogisticRegression(C=cand["C"])
+    model = make_model(cand)
     model.fit(train[cand["features"]], train["home_win"])
     prob = model.predict_proba(test[cand["features"]])[:, 1]
 
@@ -91,6 +117,8 @@ def load_champion() -> dict | None:
 
 def write_results(champion: dict, history: pd.DataFrame):
     gap = champion["test_brier"] - champion["market_brier"]
+    cfg = champion["config"]
+    knobs = ", ".join(f"**{key}:** {cfg[key]}" for key in cfg if key != "features")
     lines = [
         "# Model Results",
         "",
@@ -99,9 +127,8 @@ def write_results(champion: dict, history: pd.DataFrame):
         "",
         "## Current champion",
         "",
-        f"- **Features:** {', '.join(champion['config']['features'])}",
-        f"- **Elo K:** {champion['config']['elo_k']}, "
-        f"**regularization C:** {champion['config']['C']}",
+        f"- **Features:** {', '.join(cfg['features'])}",
+        f"- {knobs}",
         f"- **Validation Brier** (seasons {champion['val_seasons']}): "
         f"{champion['val_brier']:.4f}",
         f"- **Test Brier** (seasons {champion['test_seasons']}): "
@@ -125,11 +152,12 @@ def main():
     val_seasons = seasons[-(N_TEST_SEASONS + N_VAL_SEASONS):-N_TEST_SEASONS]
     print(f"{len(df)} games | validation {val_seasons} | test {test_seasons}\n")
 
-    datasets = {k: build_dataset(elo_k=k) for k in ELO_K}
+    datasets = {(v["elo_k"], v["mov"]): build_dataset(elo_k=v["elo_k"], mov=v["mov"])
+                for v in ELO_VARIANTS}
 
     results = []
     for cand in candidates():
-        data = datasets[cand["elo_k"]]
+        data = datasets[(cand["elo_k"], cand["mov"])]
         # Validation must not include test seasons
         val_data = data[~data["season"].isin(test_seasons)]
         brier = walk_forward_brier(val_data, cand, val_seasons)
@@ -141,7 +169,8 @@ def main():
     champion = load_champion()
     promoted = champion is None or best_brier < champion["val_brier"] - 1e-6
     if promoted:
-        test_metrics = evaluate_on_test(datasets[best["elo_k"]], best, test_seasons)
+        test_metrics = evaluate_on_test(
+            datasets[(best["elo_k"], best["mov"])], best, test_seasons)
         champion = {
             "config": best,
             "val_brier": round(best_brier, 4),
