@@ -1,0 +1,43 @@
+name: Collect prop lines
+
+on:
+  schedule:
+    # Tuesday 13:00 UTC - the week's opening lines
+    - cron: "0 13 * * 2"
+    # Sunday 15:00 UTC - near-kickoff closers (CLV measurement)
+    - cron: "0 15 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r nfl-model/requirements.txt
+
+      - name: Collect prop lines
+        working-directory: nfl-model
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python props_collector.py
+
+      - name: Commit archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add nfl-model/data-cache
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Prop line snapshot"
+            git push
+          fi
