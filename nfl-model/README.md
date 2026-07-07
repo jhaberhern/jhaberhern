@@ -121,6 +121,24 @@ earned through gates, not vibes:
 3. **Gate 3 — minimum stakes,** sized by Kelly, only after Gate 2, and
    the stakes never grow faster than the evidence.
 
+## Player props — the second front
+
+Game moneylines are the sharpest market in sports; player props are the
+softest major one. The props stack attacks them with the same honesty
+machinery:
+
+| File | What it does |
+|------|-------------|
+| `props_fetch.py` | Caches nflverse player-level data (weekly stats, snap counts, injuries) into `data-cache/` via the fetch workflow — release downloads need GitHub's runners |
+| `props_features.py` | Leak-free player-week features: trailing usage (targets, carries, shares), Vegas game context (implied team points from spread+total), positional defense allowances |
+| `props_model.py` | Quantile gradient-boosting ensemble (P10–P90) per market — receptions, receiving/rushing/passing yards — so P(over any line) falls out of the curve. Walk-forward backtested: MAE vs naive, quantile calibration, over/under Brier |
+| `props_collector.py` | Archives prop lines from The Odds API (needs `ODDS_API_KEY` secret) — openers Tuesday, closers Sunday. Historical prop lines aren't public anywhere; within a season this archive is a genuinely proprietary dataset |
+| `props_parlay.py` | Scores every collected line against the projection curves and builds parlays — **max one leg per game**, because same-game legs are correlated and multiplying their probabilities as if independent is the classic prop-parlay suicide |
+
+Same gates apply: projections must prove calibration against outcomes,
+then picks must show positive CLV in the archive, before any stake is
+discussed.
+
 ## Ideas for the next challenger
 
 - **QB quality, not just QB change** — the flags catch a new starter but
