@@ -48,25 +48,42 @@ def read_csv_bytes(raw: bytes, gzipped: bool) -> pd.DataFrame:
 
 
 def load_weekly_stats() -> pd.DataFrame:
-    """Weekly offense stats. nflverse has shipped these under a couple of
-    naming schemes over the years — try newest first."""
-    frames = []
+    """Weekly offense stats. nflverse has shipped these under several
+    naming schemes and release tags over the years — try them all, then
+    top up any still-missing seasons from the combined files."""
+    frames, found = [], set()
     for year in range(FIRST_SEASON, LAST_SEASON + 1):
         for url, gz in [
             (f"{BASE}/player_stats/player_stats_{year}.csv.gz", True),
+            (f"{BASE}/stats_player/stats_player_week_{year}.csv.gz", True),
+            (f"{BASE}/stats_player/stats_player_week_{year}.csv", False),
+            (f"{BASE}/stats_player/stats_player_{year}.csv.gz", True),
             (f"{BASE}/player_stats/stats_player_week_{year}.csv.gz", True),
             (f"{BASE}/player_stats/stats_player_week_{year}.csv", False),
         ]:
             raw = fetch(url)
             if raw:
                 frames.append(read_csv_bytes(raw, gz))
+                found.add(year)
                 print(f"  ok: {url}")
                 break
-    if not frames:  # final fallback: the single combined historical file
-        raw = fetch(f"{BASE}/player_stats/player_stats.csv.gz")
-        if raw:
-            df = read_csv_bytes(raw, True)
-            frames.append(df[df["season"] >= FIRST_SEASON])
+    missing = set(range(FIRST_SEASON, LAST_SEASON + 1)) - found
+    if missing:
+        print(f"  seasons missing after per-year fetch: {sorted(missing)}; "
+              "trying combined files")
+        for url in (f"{BASE}/stats_player/stats_player_week.csv.gz",
+                    f"{BASE}/player_stats/player_stats.csv.gz"):
+            raw = fetch(url)
+            if raw:
+                df = read_csv_bytes(raw, True)
+                top_up = df[df["season"].isin(missing)]
+                if len(top_up):
+                    frames.append(top_up)
+                    found |= set(top_up["season"].unique())
+                    print(f"  ok (top-up {sorted(top_up.season.unique())}): {url}")
+                missing = set(range(FIRST_SEASON, LAST_SEASON + 1)) - found
+                if not missing:
+                    break
     if not frames:
         raise RuntimeError("No weekly player stats reachable")
     df = pd.concat(frames, ignore_index=True)
