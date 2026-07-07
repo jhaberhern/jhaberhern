@@ -1,0 +1,219 @@
+{
+ "generated": "2026-07-07",
+ "champion": {
+  "config": {
+   "elo_k": 16,
+   "mov": true,
+   "features": [
+    "elo_diff",
+    "rest_diff",
+    "div_game",
+    "margin_diff",
+    "home_qb_new",
+    "away_qb_new",
+    "qb_val_diff"
+   ],
+   "model": "logreg",
+   "C": 0.1
+  },
+  "val_brier": 0.2231,
+  "val_seasons": "2019-2023",
+  "test_seasons": "2024-2025",
+  "test_brier": 0.2142,
+  "test_accuracy": 0.6591,
+  "market_brier": 0.2059,
+  "n_test_games": 569,
+  "promoted_on": "2026-07-06"
+ },
+ "history": [
+  {
+   "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2264,
+   "champion_val_brier": 0.2264,
+   "champion_test_brier": 0.2155,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2239,
+   "champion_val_brier": 0.2239,
+   "champion_test_brier": 0.2143,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2239,
+   "champion_val_brier": 0.2239,
+   "champion_test_brier": 0.2143,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2231,
+   "champion_val_brier": 0.2231,
+   "champion_test_brier": 0.2142,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2231,
+   "champion_val_brier": 0.2231,
+   "champion_test_brier": 0.2142,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  }
+ ],
+ "ledger": {
+  "graded": 0,
+  "pending": 16
+ },
+ "picks": [
+  {
+   "matchup": "CLE @ JAX",
+   "pick": "JAX",
+   "prob": 0.8059,
+   "ml": -340,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "ARI @ LAC",
+   "pick": "LAC",
+   "prob": 0.7924,
+   "ml": -650,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "WAS @ PHI",
+   "pick": "PHI",
+   "prob": 0.7517,
+   "ml": -238,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "NYJ @ TEN",
+   "pick": "TEN",
+   "prob": 0.6991,
+   "ml": -162,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "NE @ SEA",
+   "pick": "SEA",
+   "prob": 0.6944,
+   "ml": -198,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "NO @ DET",
+   "pick": "DET",
+   "prob": 0.6759,
+   "ml": -340,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "SF @ LA",
+   "pick": "LA",
+   "prob": 0.6383,
+   "ml": -180,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "ATL @ PIT",
+   "pick": "PIT",
+   "prob": 0.6379,
+   "ml": -175,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "TB @ CIN",
+   "pick": "CIN",
+   "prob": 0.6289,
+   "ml": -198,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "GB @ MIN",
+   "pick": "MIN",
+   "prob": 0.6209,
+   "ml": -108,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "BUF @ HOU",
+   "pick": "HOU",
+   "prob": 0.5996,
+   "ml": -108,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "BAL @ IND",
+   "pick": "BAL",
+   "prob": 0.5812,
+   "ml": -192,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "DAL @ NYG",
+   "pick": "NYG",
+   "prob": 0.5749,
+   "ml": 110,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "CHI @ CAR",
+   "pick": "CHI",
+   "prob": 0.5515,
+   "ml": -135,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "MIA @ LV",
+   "pick": "LV",
+   "prob": 0.5464,
+   "ml": -175,
+   "season": 2026,
+   "week": 1
+  },
+  {
+   "matchup": "DEN @ KC",
+   "pick": "DEN",
+   "prob": 0.5441,
+   "ml": 124,
+   "season": 2026,
+   "week": 1
+  }
+ ],
+ "parlay": {
+  "legs": [
+   "JAX",
+   "LAC",
+   "PHI"
+  ],
+  "prob": 0.48,
+  "payout": 2.12,
+  "ev": 0.018
+ }
+}

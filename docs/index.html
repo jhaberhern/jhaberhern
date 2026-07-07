@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFL Model Dashboard</title>
+<style>
+:root {
+  --page:      #f9f9f7;
+  --surface:   #fcfcfb;
+  --ink:       #0b0b0b;
+  --ink-2:     #52514e;
+  --muted:     #898781;
+  --grid:      #e1e0d9;
+  --baseline:  #c3c2b7;
+  --border:    rgba(11,11,11,0.10);
+  --series-1:  #2a78d6;
+  --good:      #006300;
+  --bad:       #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page:      #0d0d0d;
+    --surface:   #1a1a19;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --muted:     #898781;
+    --grid:      #2c2c2a;
+    --baseline:  #383835;
+    --border:    rgba(255,255,255,0.10);
+    --series-1:  #3987e5;
+    --good:      #0ca30c;
+    --bad:       #d03b3b;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 20px; max-width: 1060px; margin: 0 auto;
+}
+header h1 { font-size: 1.35rem; letter-spacing: -0.01em; }
+header p  { color: var(--ink-2); margin-top: 2px; font-size: 0.85rem; }
+.chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 0.72rem; color: var(--ink-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 9px; background: var(--surface);
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+         gap: 10px; margin: 18px 0; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.tile .k { font-size: 0.72rem; color: var(--muted); text-transform: uppercase;
+           letter-spacing: 0.05em; }
+.tile .v { font-size: 1.55rem; font-weight: 650; margin-top: 2px; }
+.tile .s { font-size: 0.78rem; color: var(--ink-2); margin-top: 2px; }
+.cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; align-items: start; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+h2 { font-size: 0.95rem; margin-bottom: 10px; }
+h2 small { color: var(--muted); font-weight: 400; font-size: 0.78rem; }
+.stack { display: grid; gap: 10px; }
+svg { display: block; width: 100%; }
+svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.parlay-legs { font-size: 1.15rem; font-weight: 650; margin: 4px 0 10px; }
+.parlay-row { display: flex; justify-content: space-between; font-size: 0.85rem;
+              color: var(--ink-2); padding: 3px 0; }
+.parlay-row b { color: var(--ink); font-weight: 600; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+#tip {
+  position: fixed; pointer-events: none; display: none; z-index: 10;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 0.78rem; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  max-width: 230px;
+}
+#tip .t { font-weight: 600; margin-bottom: 2px; }
+#tip .d { color: var(--ink-2); }
+details { margin-top: 10px; }
+summary { font-size: 0.78rem; color: var(--muted); cursor: pointer; }
+.tblwrap { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; font-size: 0.78rem; width: 100%; }
+th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--grid);
+         white-space: nowrap; font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 500; }
+footer { margin-top: 18px; color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+footer a { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<header>
+  <h1>NFL Model Dashboard</h1>
+  <p id="sub">Loading…</p>
+  <div class="chips" id="chips"></div>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="cols">
+  <div class="card">
+    <h2 id="picks-title">This week’s picks</h2>
+    <div id="picks"></div>
+    <details><summary>Table view</summary><div class="tblwrap" id="picks-table"></div></details>
+  </div>
+  <div class="stack">
+    <div class="card" id="parlay-card">
+      <h2>Most likely 3-leg parlay</h2>
+      <div id="parlay"></div>
+    </div>
+    <div class="card">
+      <h2>Getting better <small>test Brier per tournament run · lower is better</small></h2>
+      <div id="history"></div>
+      <details><summary>Table view</summary><div class="tblwrap" id="history-table"></div></details>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Paper trading only — nothing here places bets. The model must pass the
+  bankroll gates (beat the market, then a full season of positive closing-line
+  value in the <a id="ledger-link" href="#">ledger</a>) before real stakes are
+  even a conversation. Data refreshes every Tuesday via GitHub Actions.
+</footer>
+
+<div id="tip"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmtML = ml => ml > 0 ? `+${ml}` : `${ml}`;
+const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+
+const tip = $("tip");
+function showTip(evt, title, lines) {
+  tip.innerHTML = `<div class="t">${title}</div>` +
+    lines.map(l => `<div class="d">${l}</div>`).join("");
+  tip.style.display = "block";
+  const w = tip.offsetWidth, x = Math.min(evt.clientX + 12, innerWidth - w - 8);
+  tip.style.left = x + "px";
+  tip.style.top = (evt.clientY + 14) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function renderTiles(d) {
+  const c = d.champion, l = d.ledger;
+  const gap = c.test_brier - c.market_brier;
+  let paperV, paperS;
+  if (l.graded > 0) {
+    paperV = `${l.wins}-${l.graded - l.wins}`;
+    paperS = `${l.profit_units > 0 ? "+" : ""}${l.profit_units}u` +
+             (l.avg_clv != null ? ` · CLV ${pct(l.avg_clv, 1)}` : "");
+  } else { paperV = l.pending; paperS = "picks pending, none graded yet"; }
+  $("tiles").innerHTML = [
+    ["Model · test Brier", c.test_brier.toFixed(4), `market close ${c.market_brier.toFixed(4)}`],
+    ["Gap to Vegas", (gap > 0 ? "+" : "") + gap.toFixed(4), "0 = market-level · lower is better"],
+    ["Test accuracy", pct(c.test_accuracy, 1), `${c.n_test_games} games, ${c.test_seasons}`],
+    ["Paper ledger", paperV, paperS],
+  ].map(([k, v, s]) =>
+    `<div class="card tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`
+  ).join("");
+}
+
+function renderPicks(d) {
+  const picks = d.picks;
+  if (!picks.length) {
+    $("picks").innerHTML = `<p style="color:var(--muted)">No lines posted for the next week yet.</p>`;
+    return;
+  }
+  $("picks-title").innerHTML = `Season ${picks[0].season}, week ${picks[0].week} picks ` +
+    `<small>bar = model win probability of the pick</small>`;
+  const rowH = 26, labelW = 86, valW = 44, H = picks.length * rowH + 18;
+  const plotL = labelW, plotR = valW;
+  let s = `<svg viewBox="0 0 560 ${H}" role="img" aria-label="Model win probability per pick">`;
+  const plotW = 560 - plotL - plotR;
+  // gridlines at 25/50/75/100%
+  for (const g of [0.25, 0.5, 0.75, 1]) {
+    const x = plotL + g * plotW;
+    s += `<line x1="${x}" y1="0" x2="${x}" y2="${H - 18}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${x}" y="${H - 5}" text-anchor="middle" fill="var(--muted)">${g * 100}%</text>`;
+  }
+  s += `<line x1="${plotL}" y1="0" x2="${plotL}" y2="${H - 18}" stroke="var(--baseline)" stroke-width="1"/>`;
+  picks.forEach((p, i) => {
+    const y = i * rowH + 5, barH = 13;
+    const w = Math.max(p.prob * plotW, 2);
+    s += `<g class="pickrow" data-i="${i}">`;
+    s += `<rect x="0" y="${i * rowH}" width="560" height="${rowH}" fill="transparent"/>`;
+    s += `<text x="${plotL - 8}" y="${y + barH - 3}" text-anchor="end" fill="var(--ink-2)">${p.pick}</text>`;
+    s += `<path d="M${plotL},${y} h${w - 4} a4,4 0 0 1 4,4 v${barH - 8} a4,4 0 0 1 -4,4 h-${w - 4} z" fill="var(--series-1)"/>`;
+    s += `<text x="${plotL + w + 6}" y="${y + barH - 3}" fill="var(--ink)">${pct(p.prob)}</text>`;
+    s += `</g>`;
+  });
+  s += `</svg>`;
+  $("picks").innerHTML = s;
+  document.querySelectorAll(".pickrow").forEach(el => {
+    const p = picks[+el.dataset.i];
+    el.addEventListener("mousemove", e => showTip(e, p.matchup,
+      [`Pick: <b>${p.pick}</b> (${pct(p.prob, 1)})`, `Moneyline when logged: ${fmtML(p.ml)}`]));
+    el.addEventListener("mouseleave", hideTip);
+  });
+  $("picks-table").innerHTML = `<table><tr><th>Matchup</th><th>Pick</th><th>Model</th><th>Line</th></tr>` +
+    picks.map(p => `<tr><td>${p.matchup}</td><td>${p.pick}</td><td>${pct(p.prob, 1)}</td><td>${fmtML(p.ml)}</td></tr>`).join("") +
+    `</table>`;
+}
+
+function renderParlay(d) {
+  const p = d.parlay;
+  if (!p) { $("parlay-card").style.display = "none"; return; }
+  const evCls = p.ev >= 0 ? "pos" : "neg";
+  $("parlay").innerHTML =
+    `<div class="parlay-legs">${p.legs.join(" + ")}</div>
+     <div class="parlay-row"><span>Model probability</span><b>${pct(p.prob)}</b></div>
+     <div class="parlay-row"><span>Pays (at logged lines)</span><b>${p.payout.toFixed(2)}x</b></div>
+     <div class="parlay-row"><span>Model EV per unit</span><b class="${evCls}">${p.ev >= 0 ? "+" : ""}${pct(p.ev)}</b></div>
+     <div class="parlay-row" style="color:var(--muted)">Graded by the model’s own probabilities — see footer.</div>`;
+}
+
+function renderHistory(d) {
+  const rows = d.history;
+  const W = 440, H = 190, padL = 46, padR = 64, padT = 14, padB = 24;
+  const briers = rows.map(r => r.champion_test_brier);
+  const mkt = rows[rows.length - 1].market_test_brier;
+  const lo = Math.min(...briers, mkt), hi = Math.max(...briers, mkt);
+  const y = v => padT + (hi - v) / (hi - lo || 1) * (H - padT - padB);
+  const x = i => rows.length > 1 ? padL + i / (rows.length - 1) * (W - padL - padR) : (padL + W - padR) / 2;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Champion test Brier per run vs market">`;
+  for (const v of [hi, (hi + lo) / 2, lo]) {
+    s += `<line x1="${padL}" y1="${y(v)}" x2="${W - padR}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    s += `<text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" fill="var(--muted)">${v.toFixed(3)}</text>`;
+  }
+  s += `<line x1="${padL}" y1="${y(mkt)}" x2="${W - padR}" y2="${y(mkt)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<text x="${W - padR + 6}" y="${y(mkt) + 4}" fill="var(--muted)">market</text>`;
+  const pts = rows.map((r, i) => `${x(i)},${y(r.champion_test_brier)}`).join(" ");
+  s += `<polyline points="${pts}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round"/>`;
+  s += `<text x="${W - padR + 6}" y="${y(briers[briers.length - 1]) + 4}" fill="var(--series-1)">model</text>`;
+  rows.forEach((r, i) => {
+    s += `<circle class="histpt" data-i="${i}" cx="${x(i)}" cy="${y(r.champion_test_brier)}" r="4"
+           fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<circle class="histpt" data-i="${i}" cx="${x(i)}" cy="${y(r.champion_test_brier)}" r="10" fill="transparent"/>`;
+  });
+  s += `<text x="${padL}" y="${H - 6}" fill="var(--muted)">run 1</text>`;
+  s += `<text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="var(--muted)">run ${rows.length}</text>`;
+  s += `</svg>`;
+  $("history").innerHTML = s;
+  document.querySelectorAll(".histpt").forEach(el => {
+    const r = rows[+el.dataset.i];
+    el.addEventListener("mousemove", e => showTip(e, `Run ${+el.dataset.i + 1} · ${r.date}`,
+      [`Test Brier: <b>${r.champion_test_brier.toFixed(4)}</b>`,
+       `Market: ${r.market_test_brier.toFixed(4)}`,
+       r.new_champion ? "New champion promoted" : "Champion defended"]));
+    el.addEventListener("mouseleave", hideTip);
+  });
+  $("history-table").innerHTML = `<table><tr><th>Run</th><th>Date</th><th>Model Brier</th><th>Market</th><th>Champion</th></tr>` +
+    rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.date}</td><td>${r.champion_test_brier.toFixed(4)}</td>` +
+      `<td>${r.market_test_brier.toFixed(4)}</td><td>${r.new_champion ? "new" : "defended"}</td></tr>`).join("") +
+    `</table>`;
+}
+
+fetch("data.json").then(r => r.json()).then(d => {
+  const c = d.champion.config;
+  $("sub").textContent = `Champion promoted ${d.champion.promoted_on} · data refreshed ${d.generated}`;
+  $("chips").innerHTML = [
+    c.model === "gbdt" ? "gradient boosting" : "logistic regression",
+    `Elo K=${c.elo_k}${c.mov ? " · MOV" : ""}`,
+    ...c.features,
+  ].map(f => `<span class="chip">${f}</span>`).join("");
+  $("ledger-link").href = "https://github.com/jhaberhern/jhaberhern/blob/main/nfl-model/LEDGER.md";
+  renderTiles(d); renderPicks(d); renderParlay(d); renderHistory(d);
+}).catch(() => { $("sub").textContent = "Could not load data.json"; });
+</script>
+</body>
+</html>

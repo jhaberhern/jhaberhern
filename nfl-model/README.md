@@ -30,6 +30,7 @@ python3 train.py           # train, evaluate, write test predictions
 | `improve.py` | The self-improvement loop: a champion-vs-challengers tournament over Elo settings, feature sets, and regularization, scored by walk-forward validation. Promotes a new champion only when it wins on validation seasons; logs every run to `history.csv` and `RESULTS.md` |
 | `parlay.py` | Builds parlays from the champion's win probabilities. `--backtest` replays the test seasons week by week and settles each parlay at real moneyline payouts; default mode prints picks (and EV, once lines are posted) for the next scheduled week |
 | `ledger.py` | The paper-trade ledger: logs the champion's pick for every priced game of the upcoming week, then grades each pick against the result *and the closing line* (CLV). Season-to-date record lives in [`LEDGER.md`](LEDGER.md) |
+| `export_dashboard.py` | Bundles champion metrics, history, picks, parlay, and ledger record into `docs/data.json` for the GitHub Pages dashboard (`docs/index.html`) |
 
 ## First results (test seasons 2024–2025, never seen in training)
 
