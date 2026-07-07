@@ -23,7 +23,7 @@
   "test_accuracy": 0.6591,
   "market_brier": 0.2059,
   "n_test_games": 569,
-  "promoted_on": "2026-07-06"
+  "promoted_on": "2026-07-07"
  },
  "history": [
   {
@@ -64,6 +64,15 @@
   },
   {
    "date": "2026-07-06",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2231,
+   "champion_val_brier": 0.2231,
+   "champion_test_brier": 0.2142,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-07",
    "games_in_data": 7261,
    "best_val_brier": 0.2231,
    "champion_val_brier": 0.2231,
