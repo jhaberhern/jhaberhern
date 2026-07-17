@@ -1,0 +1,16 @@
+services:
+  nfl-model:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ODDS_API_KEY=${ODDS_API_KEY:?set in .env}
+      # Set GIT_SYNC=1 to pull before each job and push results back to
+      # GitHub (requires the clone's remote to embed a PAT, see README)
+      - GIT_SYNC=${GIT_SYNC:-0}
+    volumes:
+      # Mount the repo so data and results persist across image rebuilds
+      - ..:/repo
+    restart: unless-stopped
