@@ -33,7 +33,88 @@ MARKETS = {
     "passing_yards":   {"positions": ["QB"],             "volume": "attempts"},
 }
 TRAIL_STATS = ["targets", "receptions", "receiving_yards", "carries",
-               "rushing_yards", "attempts", "passing_yards", "target_share"]
+               "rushing_yards", "attempts", "passing_yards", "target_share",
+               "offense_pct"]
+
+# Which side of the opponent's defense each market attacks
+MARKET_DEF_EPA = {"receptions": "def_pass_epa", "receiving_yards": "def_pass_epa",
+                  "passing_yards": "def_pass_epa", "rushing_yards": "def_rush_epa"}
+
+
+def norm_name(s: str) -> str:
+    import re
+    s = re.sub(r"[^a-z ]", "", str(s).lower())
+    return " ".join(s.split()[:2])
+
+
+def add_snap_pct(df: pd.DataFrame) -> pd.DataFrame:
+    """Attach each player-week's offensive snap share (by name+team+week —
+    the snap file uses PFR ids, the stats file GSIS ids). Snap share is
+    the purest role signal there is; its trailing values are computed by
+    add_trailing like every other stat."""
+    path = CACHE / "snap_counts.csv.gz"
+    if not path.exists():
+        df["offense_pct"] = float("nan")
+        return df
+    snaps = pd.read_csv(path)
+    snaps["norm_name"] = snaps["player"].map(norm_name)
+    snaps = (snaps.groupby(["season", "week", "team", "norm_name"],
+                           as_index=False)["offense_pct"].max())
+    df = df.copy()
+    df["norm_name"] = df["player_display_name"].map(norm_name)
+    df = df.merge(snaps, left_on=["season", "week", "recent_team", "norm_name"],
+                  right_on=["season", "week", "team", "norm_name"],
+                  how="left").drop(columns=["team"])
+    return df
+
+
+def add_injuries(df: pd.DataFrame) -> pd.DataFrame:
+    """Pre-game injury-report features — the timing edge. A player's own
+    Questionable/Doubtful tag, and how many same-position teammates are
+    ruled Out (their volume has to go somewhere)."""
+    path = CACHE / "injuries.csv.gz"
+    df = df.copy()
+    if not path.exists():
+        df["own_questionable"] = 0.0
+        df["teammates_out_pos"] = 0.0
+        return df
+    inj = pd.read_csv(path)
+
+    own = inj[inj["report_status"].isin(["Questionable", "Doubtful"])]
+    own = own[["season", "week", "gsis_id"]].drop_duplicates()
+    own["own_questionable"] = 1.0
+    df = df.merge(own, left_on=["season", "week", "player_id"],
+                  right_on=["season", "week", "gsis_id"], how="left"
+                  ).drop(columns=["gsis_id"])
+
+    out = (inj[inj["report_status"] == "Out"]
+           .groupby(["season", "week", "team", "position"])
+           .size().rename("teammates_out_pos").reset_index())
+    df = df.merge(out, left_on=["season", "week", "recent_team", "position"],
+                  right_on=["season", "week", "team", "position"], how="left"
+                  ).drop(columns=["team"])
+    df["own_questionable"] = df["own_questionable"].fillna(0.0)
+    df["teammates_out_pos"] = df["teammates_out_pos"].fillna(0.0)
+    return df
+
+
+def add_opp_def_epa(df: pd.DataFrame, market: str) -> pd.DataFrame:
+    """Opponent's season-to-date defensive EPA/play on the relevant side
+    (pass or rush), shifted one week so it's strictly pre-game."""
+    path = CACHE / "team_week_epa.csv.gz"
+    col = MARKET_DEF_EPA[market]
+    df = df.copy()
+    if not path.exists():
+        df["opp_def_epa"] = float("nan")
+        return df
+    epa = pd.read_csv(path).sort_values(["season", "week"])
+    epa["opp_def_epa"] = (epa.groupby(["season", "team"])[col]
+                          .transform(lambda s: s.shift(1)
+                                     .expanding(min_periods=1).mean()))
+    return df.merge(
+        epa[["season", "week", "team", "opp_def_epa"]],
+        left_on=["season", "week", "opponent_team"],
+        right_on=["season", "week", "team"], how="left").drop(columns=["team"])
 
 
 def load_player_weeks() -> pd.DataFrame:
@@ -109,17 +190,23 @@ def build_market_dataset(market: str) -> tuple[pd.DataFrame, list[str]]:
 
     # Only player-weeks with a real role: saves the model from special-
     # teamers and inactive weeks (props aren't posted for those anyway)
+    df = add_snap_pct(df)
     df = add_trailing(df)
     df = df[df[f"tr4_{spec['volume']}"].fillna(0) > 1.0]
     df = df[df["games_prior"] >= 2]
+    df["snap_trend"] = df["tr4_offense_pct"] - df["tr8_offense_pct"]
 
+    df = add_injuries(df)
+    df = add_opp_def_epa(df, market)
     df = add_defense_allowance(df, market)
     ctx = game_context()
     df = df.merge(ctx, left_on=["season", "week", "recent_team"],
                   right_on=["season", "week", "team"], how="left")
 
     features = ([c for c in df.columns if c.startswith(("tr4_", "tr8_"))]
-                + ["games_prior", "def_allowed", "implied_points", "is_home"])
+                + ["games_prior", "def_allowed", "implied_points", "is_home",
+                   "snap_trend", "own_questionable", "teammates_out_pos",
+                   "opp_def_epa"])
     df = df.dropna(subset=[market])
     df[features] = df[features].fillna(-1.0)  # GBDT-friendly missing marker
     return df, features
