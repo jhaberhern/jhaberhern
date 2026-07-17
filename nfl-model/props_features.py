@@ -98,6 +98,45 @@ def add_injuries(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_vacated_volume(df: pd.DataFrame, all_stats: pd.DataFrame) -> pd.DataFrame:
+    """How much target volume a team's ruled-Out players take with them
+    this week. A WR2 gains far more when the WR1's nine targets vanish
+    than when a depth receiver sits — the count of Outs can't see that;
+    the sum of their recent usage can. Strictly pre-game: uses each Out
+    player's average targets over games already played."""
+    path = CACHE / "injuries.csv.gz"
+    df = df.copy()
+    if not path.exists():
+        df["vacated_targets"] = 0.0
+        return df
+    inj = pd.read_csv(path)
+    outs = inj[inj["report_status"] == "Out"][
+        ["season", "week", "team", "gsis_id"]].drop_duplicates()
+
+    # Each player's season-to-date average targets AFTER each game played,
+    # then carried forward to any later week via a backward asof-join
+    hist = all_stats[["player_id", "season", "week", "targets"]].copy()
+    hist["order"] = hist["season"] * 100 + hist["week"]
+    hist = hist.sort_values("order")
+    hist["avg_targets"] = (hist.groupby("player_id")["targets"]
+                           .transform(lambda s: s.expanding(min_periods=1).mean()))
+    outs = outs.copy()
+    outs["order"] = outs["season"] * 100 + outs["week"]
+    outs = pd.merge_asof(
+        outs.sort_values("order"), hist.sort_values("order"),
+        on="order", left_by="gsis_id", right_by="player_id",
+        allow_exact_matches=False, direction="backward",
+        suffixes=("", "_h"))
+
+    vac = (outs.groupby(["season", "week", "team"])["avg_targets"]
+           .sum().rename("vacated_targets").reset_index())
+    df = df.merge(vac, left_on=["season", "week", "recent_team"],
+                  right_on=["season", "week", "team"], how="left"
+                  ).drop(columns=["team"])
+    df["vacated_targets"] = df["vacated_targets"].fillna(0.0)
+    return df
+
+
 def add_opp_def_epa(df: pd.DataFrame, market: str) -> pd.DataFrame:
     """Opponent's season-to-date defensive EPA/play on the relevant side
     (pass or rush), shifted one week so it's strictly pre-game."""
@@ -197,6 +236,7 @@ def build_market_dataset(market: str) -> tuple[pd.DataFrame, list[str]]:
     df["snap_trend"] = df["tr4_offense_pct"] - df["tr8_offense_pct"]
 
     df = add_injuries(df)
+    df = add_vacated_volume(df, load_player_weeks())
     df = add_opp_def_epa(df, market)
     df = add_defense_allowance(df, market)
     ctx = game_context()
@@ -206,7 +246,7 @@ def build_market_dataset(market: str) -> tuple[pd.DataFrame, list[str]]:
     features = ([c for c in df.columns if c.startswith(("tr4_", "tr8_"))]
                 + ["games_prior", "def_allowed", "implied_points", "is_home",
                    "snap_trend", "own_questionable", "teammates_out_pos",
-                   "opp_def_epa"])
+                   "vacated_targets", "opp_def_epa"])
     df = df.dropna(subset=[market])
     df[features] = df[features].fillna(-1.0)  # GBDT-friendly missing marker
     return df, features
