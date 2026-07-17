@@ -30,6 +30,7 @@ import pandas as pd
 
 HERE = Path(__file__).parent
 OUT = HERE / "data-cache" / "prop_lines.csv.gz"
+OUT_GAMES = HERE / "data-cache" / "game_lines.csv.gz"
 BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl"
 
 MARKETS = ["player_receptions", "player_reception_yds",
@@ -75,6 +76,38 @@ def flatten(event: dict, snapshot: str) -> list[dict]:
     return rows
 
 
+def collect_game_lines(snapshot: str):
+    """Snapshot game-level odds (moneyline/spread/total) — one bulk call,
+    ~3 credits. nflverse only preserves closing lines, so archiving our
+    own openers gives the game model a real open-to-close CLV dataset."""
+    events, quota = get("/odds", regions="us", markets="h2h,spreads,totals",
+                        bookmakers=",".join(BOOKMAKERS), oddsFormat="american")
+    rows = []
+    for ev in events:
+        for bk in ev.get("bookmakers", []):
+            for mkt in bk.get("markets", []):
+                for o in mkt.get("outcomes", []):
+                    rows.append({
+                        "snapshot_utc": snapshot, "event_id": ev["id"],
+                        "commence_time": ev.get("commence_time"),
+                        "home_team": ev.get("home_team"),
+                        "away_team": ev.get("away_team"),
+                        "bookmaker": bk["key"], "market": mkt["key"],
+                        "name": o.get("name"), "point": o.get("point"),
+                        "price": o.get("price"),
+                    })
+    print(f"{len(rows)} game lines collected "
+          f"(credits left: {quota['remaining']})")
+    if not rows:
+        return
+    new = pd.DataFrame(rows)
+    if OUT_GAMES.exists():
+        new = pd.concat([pd.read_csv(OUT_GAMES), new],
+                        ignore_index=True).drop_duplicates()
+    new.to_csv(OUT_GAMES, index=False)
+    print(f"Game-line archive now {len(new)} rows -> {OUT_GAMES.name}")
+
+
 def main():
     if not os.environ.get("ODDS_API_KEY"):
         print("ODDS_API_KEY not set - nothing to collect. See module "
@@ -82,6 +115,7 @@ def main():
         return
 
     snapshot = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    collect_game_lines(snapshot)
     events, quota = get("/events")
     print(f"{len(events)} upcoming events (credits left: {quota['remaining']})")
 
