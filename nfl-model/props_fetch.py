@@ -109,6 +109,37 @@ def load_per_year(release: str, keep: list[str]) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def load_team_epa() -> pd.DataFrame:
+    """Team-week EPA/play splits aggregated from play-by-play.
+
+    EPA measures how well teams actually played, not just the score —
+    the strongest public predictor in football analytics. Play-by-play
+    is ~40MB/season so we aggregate on the runner and cache only the
+    team-week summary."""
+    frames = []
+    cols = ["season", "week", "posteam", "defteam", "epa", "pass", "rush"]
+    for year in range(FIRST_SEASON, LAST_SEASON + 1):
+        raw = fetch(f"{BASE}/pbp/play_by_play_{year}.csv.gz")
+        if not raw:
+            continue
+        pbp = pd.read_csv(io.BytesIO(raw), compression="gzip",
+                          usecols=cols, low_memory=False)
+        pbp = pbp.dropna(subset=["epa", "posteam"])
+        for side, team_col in [("off", "posteam"), ("def", "defteam")]:
+            for play, flag in [("pass", "pass"), ("rush", "rush")]:
+                sub = pbp[pbp[flag] == 1]
+                agg = (sub.groupby(["season", "week", team_col])["epa"]
+                       .mean().rename(f"{side}_{play}_epa").reset_index()
+                       .rename(columns={team_col: "team"}))
+                frames.append(agg.set_index(["season", "week", "team"]))
+        print(f"  ok: pbp {year}")
+    if not frames:
+        raise RuntimeError("No play-by-play reachable")
+    out = pd.concat(frames, axis=0)
+    out = out.groupby(level=[0, 1, 2]).first().reset_index()
+    return out
+
+
 def main():
     CACHE.mkdir(exist_ok=True)
 
@@ -131,6 +162,14 @@ def main():
         "report_status", "practice_status", "date_modified"])
     inj.to_csv(CACHE / "injuries.csv.gz", index=False)
     print(f"  -> {len(inj)} rows")
+
+    print("Team EPA from play-by-play:")
+    try:
+        epa = load_team_epa()
+        epa.to_csv(CACHE / "team_week_epa.csv.gz", index=False)
+        print(f"  -> {len(epa)} team-weeks")
+    except Exception as e:  # never let the heavy optional step sink the rest
+        print(f"  skipped: {e}")
 
 
 if __name__ == "__main__":
