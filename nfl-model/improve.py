@@ -50,6 +50,8 @@ ELO_VARIANTS = [
 ]
 BASE = ("elo_diff", "rest_diff", "div_game")
 QB = ("home_qb_new", "away_qb_new")
+CHAMP = BASE + ("margin_diff",) + QB + ("qb_val_diff",)  # reigning blend
+EPA = ("epa_pass_diff", "epa_rush_diff")
 FEATURE_SETS = [
     BASE,
     BASE + ("margin_diff",),
@@ -57,7 +59,10 @@ FEATURE_SETS = [
     BASE + ("margin_diff",) + QB,
     BASE + ("margin_diff_3", "margin_diff", "margin_diff_10") + QB,
     BASE + ("margin_diff", "qb_val_diff"),
-    BASE + ("margin_diff",) + QB + ("qb_val_diff",),
+    CHAMP,
+    CHAMP + EPA,                       # team quality beyond the scoreboard
+    CHAMP + EPA + ("spread_line",),    # market-piggyback: learn the residual
+    BASE + ("spread_line",),           # market-anchored minimal
 ]
 MODELS = [
     {"model": "logreg", "C": 0.1},
