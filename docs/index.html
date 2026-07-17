@@ -115,6 +115,15 @@ footer a { color: var(--ink-2); }
   </div>
 </div>
 
+<div class="card" id="ops-card" style="display:none; margin-top:10px">
+  <h2>Operations <small>self-hosted server detected</small></h2>
+  <div class="tblwrap"><table id="ops-table"></table></div>
+  <pre id="ops-log" style="display:none; margin-top:10px; font-size:0.72rem;
+       line-height:1.4; max-height:300px; overflow:auto; padding:10px;
+       border:1px solid var(--grid); border-radius:8px;
+       color: var(--ink-2); white-space: pre-wrap;"></pre>
+</div>
+
 <footer>
   Paper trading only — nothing here places bets. The model must pass the
   bankroll gates (beat the market, then a full season of positive closing-line
@@ -253,6 +262,50 @@ function renderHistory(d) {
       `<td>${r.market_test_brier.toFixed(4)}</td><td>${r.new_champion ? "new" : "defended"}</td></tr>`).join("") +
     `</table>`;
 }
+
+const fmtTime = t => t && t !== "None"
+  ? new Date(t).toLocaleString(undefined, {weekday: "short", hour: "2-digit",
+                                           minute: "2-digit"}) : "—";
+
+async function renderOps() {
+  let jobs;
+  try { jobs = await (await fetch("api/status")).json(); }
+  catch { return; }  // static hosting (GitHub Pages): stay read-only
+  $("ops-card").style.display = "block";
+  const rows = Object.entries(jobs).map(([name, j]) => `
+    <tr>
+      <td><b>${name}</b></td>
+      <td>${j.ok === undefined ? "—" : j.ok ? "✓ ok" : "✗ failed"}</td>
+      <td>${fmtTime(j.last_run)}</td>
+      <td>${fmtTime(j.next_run)}</td>
+      <td><code style="font-size:0.7rem">${j.schedule}</code></td>
+      <td><button data-run="${name}">Run now</button>
+          <button data-log="${name}">Log</button></td>
+    </tr>`).join("");
+  $("ops-table").innerHTML =
+    `<tr><th>Job</th><th>Status</th><th>Last run</th><th>Next run</th>
+     <th>Schedule</th><th></th></tr>` + rows;
+  document.querySelectorAll("#ops-table button").forEach(btn => {
+    btn.style.cssText = "font: inherit; font-size: 0.72rem; padding: 2px 8px;" +
+      "border: 1px solid var(--border); border-radius: 6px;" +
+      "background: var(--surface); color: var(--ink-2); cursor: pointer;";
+    btn.addEventListener("click", async () => {
+      if (btn.dataset.run) {
+        btn.textContent = "Running…"; btn.disabled = true;
+        await fetch(`api/run/${btn.dataset.run}`, {method: "POST"});
+        await renderOps();
+        location.reload();  // pick up refreshed data.json
+      } else {
+        const log = await (await fetch(`api/log/${btn.dataset.log}`)).text();
+        const pre = $("ops-log");
+        pre.textContent = log;
+        pre.style.display = "block";
+        pre.scrollIntoView({behavior: "smooth"});
+      }
+    });
+  });
+}
+renderOps();
 
 fetch("data.json").then(r => r.json()).then(d => {
   const c = d.champion.config;
