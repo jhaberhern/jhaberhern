@@ -74,8 +74,19 @@ First tournament result: adding a rolling point-margin feature
 
 The tournament's challenger axes so far: Elo speed (K), margin-of-victory
 Elo updates, rolling point-margin windows (3/5/10 games), QB-change
-flags, regularization strength, and gradient boosting vs logistic
-regression. The current best blend lives in `champion.json`.
+flags, per-QB value, team EPA ratings, regularization strength, and
+gradient boosting vs logistic regression. The current best blend lives
+in `champion.json`.
+
+**Market-anchored champions:** challenger sets may include the Vegas
+spread as a feature — the "piggyback" strategy: let the market do the
+macro work and learn the residual. When such a champion reigns, the
+"gap to Vegas" metric will be tiny *by construction*; the model's value
+then lives entirely in its residual disagreements with the moneyline,
+which only the ledger's CLV record can validate. Note the backtest uses
+closing spreads; live picks are logged at the in-week spread, so the
+open-to-close archive in `game_lines.csv.gz` is what ultimately grades
+this strategy.
 
 ## The parlay question
 

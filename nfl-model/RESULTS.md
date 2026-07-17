@@ -4,11 +4,11 @@
 
 ## Current champion
 
-- **Features:** elo_diff, rest_diff, div_game, margin_diff, home_qb_new, away_qb_new, qb_val_diff
-- **elo_k:** 16, **mov:** True, **model:** logreg, **C:** 0.1
-- **Validation Brier** (seasons 2019-2023): 0.2231
-- **Test Brier** (seasons 2024-2025): 0.2142 on 569 games (65.9% accuracy)
-- **Vegas moneyline on the same test games:** 0.2059 — gap to close: +0.0083
+- **Features:** elo_diff, rest_diff, div_game, spread_line
+- **elo_k:** 24, **mov:** False, **model:** logreg, **C:** 1.0
+- **Validation Brier** (seasons 2019-2023): 0.2125
+- **Test Brier** (seasons 2024-2025): 0.2066 on 569 games (68.2% accuracy)
+- **Vegas moneyline on the same test games:** 0.2059 — gap to close: +0.0007
 
 ## Run history
 
@@ -21,3 +21,4 @@
 | 2026-07-06 |            7261 |           0.2231 |               0.2231 |                0.2142 |              0.2059 | True           |
 | 2026-07-07 |            7261 |           0.2231 |               0.2231 |                0.2142 |              0.2059 | True           |
 | 2026-07-14 |            7261 |           0.2231 |               0.2231 |                0.2142 |              0.2059 | True           |
+| 2026-07-17 |            7261 |           0.2125 |               0.2125 |                0.2066 |              0.2059 | True           |

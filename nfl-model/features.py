@@ -176,6 +176,40 @@ def add_qb_value(games: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return games
 
 
+def add_team_epa(games: pd.DataFrame) -> pd.DataFrame:
+    """Trailing team EPA/play ratings (last 10 games, shifted pre-game)
+    from the cached play-by-play aggregates. EPA measures how well teams
+    play rather than what the scoreboard said — the strongest public
+    team-quality signal. Cache covers 2016+; earlier games get 0
+    (neutral), which for a centered stat reads as 'no information'."""
+    path = Path(__file__).parent / "data-cache" / "team_week_epa.csv.gz"
+    games = games.copy()
+    if not path.exists():
+        games["epa_pass_diff"] = 0.0
+        games["epa_rush_diff"] = 0.0
+        return games
+    epa = pd.read_csv(path).sort_values(["season", "week"])
+    for col in ["off_pass_epa", "off_rush_epa", "def_pass_epa", "def_rush_epa"]:
+        epa[f"tr_{col}"] = (epa.groupby("team")[col]
+                            .transform(lambda s: s.shift(1)
+                                       .rolling(10, min_periods=1).mean()))
+    # net rating per side: offense production minus what the defense allows
+    epa["net_pass"] = epa["tr_off_pass_epa"] - epa["tr_def_pass_epa"]
+    epa["net_rush"] = epa["tr_off_rush_epa"] - epa["tr_def_rush_epa"]
+    ratings = epa[["season", "week", "team", "net_pass", "net_rush"]]
+
+    for side in ("home", "away"):
+        games = games.merge(
+            ratings.rename(columns={"net_pass": f"{side}_net_pass",
+                                    "net_rush": f"{side}_net_rush"}),
+            left_on=["season", "week", f"{side}_team"],
+            right_on=["season", "week", "team"], how="left"
+        ).drop(columns=["team"])
+    games["epa_pass_diff"] = (games["home_net_pass"] - games["away_net_pass"]).fillna(0.0)
+    games["epa_rush_diff"] = (games["home_net_rush"] - games["away_net_rush"]).fillna(0.0)
+    return games
+
+
 def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
                   regression: float = SEASON_REGRESSION,
                   mov: bool = False,
@@ -191,8 +225,10 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
     games = add_rolling_margin(games)
     games = add_qb_change(games)
     games = add_qb_value(games)
+    games = add_team_epa(games)
 
     games["rest_diff"] = games["home_rest"] - games["away_rest"]
+    games["spread_line"] = games["spread_line"].fillna(0.0)
     games["home_win"] = (games["result"] > 0).astype(float).where(
         games["result"].notna())
 
@@ -205,6 +241,7 @@ def build_dataset(elo_k: float = ELO_K, elo_hfa: float = HOME_FIELD_ELO,
         "elo_diff", "rest_diff", "div_game",
         "margin_diff_3", "margin_diff", "margin_diff_10",
         "home_qb_new", "away_qb_new", "qb_val_diff",
+        "epa_pass_diff", "epa_rush_diff", "spread_line",
         "home_moneyline", "away_moneyline",
         "home_win",
     ]
