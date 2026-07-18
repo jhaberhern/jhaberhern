@@ -61,6 +61,42 @@ def ledger_sections(ledger: pd.DataFrame) -> tuple[dict, list, dict | None]:
     return summary, picks, parlay
 
 
+def props_section() -> dict:
+    """Live status of the props pipeline, plus scored legs and a parlay
+    once the line archive has anything to price."""
+    out = {"prop_lines": 0, "game_lines": 0, "last_snapshot": None,
+           "legs": [], "parlay": None}
+    games_path = HERE / "data-cache" / "game_lines.csv.gz"
+    if games_path.exists():
+        g = pd.read_csv(games_path)
+        out["game_lines"] = len(g)
+        out["last_snapshot"] = str(g["snapshot_utc"].max())
+
+    from props_collector import OUT as PROP_ARCHIVE
+    if not PROP_ARCHIVE.exists():
+        return out
+    lines = pd.read_csv(PROP_ARCHIVE)
+    out["prop_lines"] = len(lines)
+    if lines.empty:
+        return out
+    out["last_snapshot"] = str(lines["snapshot_utc"].max())
+
+    from props_parlay import build_parlays, latest_lines, score_legs
+    legs = score_legs(latest_lines())
+    if legs.empty:
+        return out
+    top = legs.sort_values("p_model", ascending=False).head(8)
+    out["legs"] = [{
+        "player": l.player, "market": l.market.replace("player_", ""),
+        "side": l.side, "line": l.line, "price": int(l.price),
+        "p_model": round(float(l.p_model), 3),
+        "edge": round(float(l.edge), 3),
+    } for l in top.itertuples()]
+    parlays = build_parlays(legs, k=3, top=1)
+    out["parlay"] = parlays[0] if parlays else None
+    return out
+
+
 def main():
     champion = json.loads((HERE / "champion.json").read_text())
     history = pd.read_csv(HERE / "history.csv")
@@ -74,6 +110,7 @@ def main():
         "ledger": summary,
         "picks": picks,
         "parlay": parlay,
+        "props": props_section(),
     }
     DOCS.mkdir(exist_ok=True)
     (DOCS / "data.json").write_text(json.dumps(data, indent=1) + "\n")

@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-17",
+ "generated": "2026-07-18",
  "champion": {
   "config": {
    "elo_k": 24,
@@ -239,5 +239,12 @@
   "prob": 0.48,
   "payout": 2.12,
   "ev": 0.018
+ },
+ "props": {
+  "prop_lines": 0,
+  "game_lines": 654,
+  "last_snapshot": "2026-07-17T01:08:32+00:00",
+  "legs": [],
+  "parlay": null
  }
 }
