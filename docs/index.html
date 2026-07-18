@@ -112,6 +112,10 @@ footer a { color: var(--ink-2); }
       <div id="history"></div>
       <details><summary>Table view</summary><div class="tblwrap" id="history-table"></div></details>
     </div>
+    <div class="card">
+      <h2>Player props <small>projections vs posted lines</small></h2>
+      <div id="props"></div>
+    </div>
   </div>
 </div>
 
@@ -222,6 +226,41 @@ function renderParlay(d) {
      <div class="parlay-row" style="color:var(--muted)">Graded by the model’s own probabilities — see footer.</div>`;
 }
 
+function renderProps(d) {
+  const p = d.props;
+  if (!p) { $("props").innerHTML = ""; return; }
+  if (!p.legs.length) {
+    const snap = p.last_snapshot
+      ? `last snapshot ${p.last_snapshot.slice(0, 10)}` : "no snapshots yet";
+    $("props").innerHTML = `
+      <div class="parlay-row"><span>Prop lines archived</span><b>${p.prop_lines}</b></div>
+      <div class="parlay-row"><span>Game lines archived</span><b>${p.game_lines}</b></div>
+      <div class="parlay-row"><span>Collector</span><b>watching Tue + Sun · ${snap}</b></div>
+      <div class="parlay-row" style="color:var(--muted)">
+        Books post player props near game week. The moment lines land,
+        model legs and a props parlay appear here.</div>`;
+    return;
+  }
+  const rows = p.legs.map(l => `<tr>
+      <td>${l.player}</td><td>${l.market}</td>
+      <td>${l.side} ${l.line}</td><td>${fmtML(l.price)}</td>
+      <td>${pct(l.p_model, 1)}</td>
+      <td class="${l.edge >= 0 ? "pos" : "neg"}">${(l.edge >= 0 ? "+" : "") + pct(l.edge, 1)}</td>
+    </tr>`).join("");
+  let html = `<div class="tblwrap"><table>
+    <tr><th>Player</th><th>Market</th><th>Pick</th><th>Line</th>
+    <th>Model</th><th>Edge</th></tr>${rows}</table></div>`;
+  if (p.parlay) {
+    html += `<div class="parlay-legs" style="font-size:0.95rem; margin-top:10px">
+        ${p.parlay.legs.join(" + ")}</div>
+      <div class="parlay-row"><span>Model probability</span><b>${pct(p.parlay.prob)}</b></div>
+      <div class="parlay-row"><span>Pays</span><b>${p.parlay.payout.toFixed(2)}x</b></div>
+      <div class="parlay-row"><span>Model EV</span>
+        <b class="${p.parlay.ev >= 0 ? "pos" : "neg"}">${(p.parlay.ev >= 0 ? "+" : "") + pct(p.parlay.ev)}</b></div>`;
+  }
+  $("props").innerHTML = html;
+}
+
 function renderHistory(d) {
   const rows = d.history;
   const W = 440, H = 190, padL = 46, padR = 64, padT = 14, padB = 24;
@@ -316,7 +355,7 @@ fetch("data.json").then(r => r.json()).then(d => {
     ...c.features,
   ].map(f => `<span class="chip">${f}</span>`).join("");
   $("ledger-link").href = "https://github.com/jhaberhern/jhaberhern/blob/main/nfl-model/LEDGER.md";
-  renderTiles(d); renderPicks(d); renderParlay(d); renderHistory(d);
+  renderTiles(d); renderPicks(d); renderParlay(d); renderHistory(d); renderProps(d);
 }).catch(() => { $("sub").textContent = "Could not load data.json"; });
 </script>
 </body>
