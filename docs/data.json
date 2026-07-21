@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-18",
+ "generated": "2026-07-21",
  "champion": {
   "config": {
    "elo_k": 24,
@@ -20,7 +20,7 @@
   "test_accuracy": 0.6819,
   "market_brier": 0.2059,
   "n_test_games": 569,
-  "promoted_on": "2026-07-17"
+  "promoted_on": "2026-07-21"
  },
  "history": [
   {
@@ -88,6 +88,15 @@
   },
   {
    "date": "2026-07-17",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2125,
+   "champion_val_brier": 0.2125,
+   "champion_test_brier": 0.2066,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-07-21",
    "games_in_data": 7261,
    "best_val_brier": 0.2125,
    "champion_val_brier": 0.2125,
