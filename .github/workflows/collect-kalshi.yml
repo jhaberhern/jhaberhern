@@ -1,0 +1,42 @@
+name: Collect Kalshi prices
+
+on:
+  schedule:
+    # Kalshi prices move continuously; snapshot a few times daily so we
+    # capture intraday drift (openers vs closes) for CLV, cheaply.
+    - cron: "0 13 * * *"   # ~market open (US morning)
+    - cron: "0 20 * * *"   # afternoon
+    - cron: "0 2 * * *"    # overnight
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r nfl-model/requirements.txt
+
+      - name: Snapshot Kalshi prices
+        working-directory: nfl-model
+        run: python kalshi_collector.py
+
+      - name: Commit archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add nfl-model/data-cache
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Kalshi price snapshot"
+            git push
+          fi
