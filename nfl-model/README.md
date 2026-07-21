@@ -132,6 +132,32 @@ earned through gates, not vibes:
 3. **Gate 3 — minimum stakes,** sized by Kelly, only after Gate 2, and
    the stakes never grow faster than the evidence.
 
+## Kalshi — the third front (and the one where automation is legal)
+
+Everything above is a sportsbook, where automated betting violates terms
+and the goal stays paper-only. **Kalshi is different**: a CFTC-regulated
+exchange with an official API that *permits* algorithmic trading. It's a
+peer-to-peer order book quoting contracts 1–99¢ that settle at $1, so a
+price of 62¢ *is* a 62% implied probability — no vig to strip — and it
+runs in all 50 states. It's the one venue where "a model that funds
+itself" is a legal, in-terms endgame rather than a paper exercise. And
+it isn't limited to sports: weather, economic data (CPI, jobs, Fed),
+and more are all tradeable event contracts.
+
+The same gate discipline applies, so we start read-only:
+
+| File | What it does |
+|------|-------------|
+| `kalshi_collector.py` | Snapshots public Kalshi market prices (bid/ask/last/volume/open interest) into `data-cache/kalshi_prices.csv.gz`. No credentials needed for read-only data; casts wide across categories by default |
+| `kalshi_survey.py` | Reports per-category volume, spread, and price movement across snapshots — so we can *see where the tradeable mispricing lives* before committing to model anything |
+
+Collection runs three times daily (`collect-kalshi.yml` / the `kalshi`
+server job) to capture intraday drift. Once the survey shows a liquid,
+movement-rich category (weather and economic-data series are the usual
+winners for a public-data modeler), that becomes the first Kalshi model
+— graded against archived prices, paper first, exactly like the sports
+side, before Gate 3 puts a real (API-placed, legal) order on the book.
+
 ## Player props — the second front
 
 Game moneylines are the sharpest market in sports; player props are the

@@ -32,6 +32,7 @@ JOBS = {
     "improve": {"cmd": ["python3", "improve.py"],           "cron": "0 12 * * 2"},
     "ledger":  {"cmd": ["python3", "ledger.py"],            "cron": "10 12 * * 2"},
     "collect": {"cmd": ["python3", "props_collector.py"],   "cron": "0 13 * * 2,0"},
+    "kalshi":  {"cmd": ["python3", "kalshi_collector.py"],  "cron": "0 13,20,2 * * *"},
     "export":  {"cmd": ["python3", "export_dashboard.py"],  "cron": "20 12 * * 2"},
 }
 # More aggressive schedules? Edit the cron strings above (min hour dom mon dow)
