@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-18",
+ "generated": "2026-08-25",
  "champion": {
   "config": {
    "elo_k": 24,
@@ -20,7 +20,7 @@
   "test_accuracy": 0.6819,
   "market_brier": 0.2059,
   "n_test_games": 569,
-  "promoted_on": "2026-08-18"
+  "promoted_on": "2026-08-25"
  },
  "history": [
   {
@@ -133,6 +133,15 @@
   },
   {
    "date": "2026-08-18",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2125,
+   "champion_val_brier": 0.2125,
+   "champion_test_brier": 0.2066,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-08-25",
    "games_in_data": 7261,
    "best_val_brier": 0.2125,
    "champion_val_brier": 0.2125,
@@ -286,10 +295,83 @@
   "ev": 0.018
  },
  "props": {
-  "prop_lines": 0,
-  "game_lines": 3228,
-  "last_snapshot": "2026-08-02T15:56:19+00:00",
-  "legs": [],
+  "prop_lines": 34,
+  "game_lines": 7062,
+  "last_snapshot": "2026-08-23T15:15:21+00:00",
+  "legs": [
+   {
+    "player": "Rashid Shaheed",
+    "market": "receptions",
+    "side": "under",
+    "line": 2.5,
+    "price": -122,
+    "p_model": 0.792,
+    "edge": 0.278
+   },
+   {
+    "player": "Rashid Shaheed",
+    "market": "reception_yds",
+    "side": "under",
+    "line": 31.5,
+    "price": -114,
+    "p_model": 0.76,
+    "edge": 0.26
+   },
+   {
+    "player": "George Holani",
+    "market": "rush_yds",
+    "side": "under",
+    "line": 21.5,
+    "price": -114,
+    "p_model": 0.746,
+    "edge": 0.246
+   },
+   {
+    "player": "Deebo Samuel",
+    "market": "receptions",
+    "side": "over",
+    "line": 2.5,
+    "price": -140,
+    "p_model": 0.693,
+    "edge": 0.147
+   },
+   {
+    "player": "Jaxon Smith-Njigba",
+    "market": "reception_yds",
+    "side": "under",
+    "line": 84.5,
+    "price": -114,
+    "p_model": 0.687,
+    "edge": 0.187
+   },
+   {
+    "player": "Jaxon Smith-Njigba",
+    "market": "receptions",
+    "side": "under",
+    "line": 6.5,
+    "price": -130,
+    "p_model": 0.683,
+    "edge": 0.155
+   },
+   {
+    "player": "Puka Nacua",
+    "market": "receptions",
+    "side": "under",
+    "line": 7.5,
+    "price": -154,
+    "p_model": 0.657,
+    "edge": 0.09
+   },
+   {
+    "player": "Rhamondre Stevenson",
+    "market": "rush_yds",
+    "side": "over",
+    "line": 40.5,
+    "price": -114,
+    "p_model": 0.653,
+    "edge": 0.153
+   }
+  ],
   "parlay": null
  }
 }
