@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-25",
+ "generated": "2026-09-01",
  "champion": {
   "config": {
    "elo_k": 24,
@@ -20,7 +20,7 @@
   "test_accuracy": 0.6819,
   "market_brier": 0.2059,
   "n_test_games": 569,
-  "promoted_on": "2026-08-25"
+  "promoted_on": "2026-09-01"
  },
  "history": [
   {
@@ -142,6 +142,15 @@
   },
   {
    "date": "2026-08-25",
+   "games_in_data": 7261,
+   "best_val_brier": 0.2125,
+   "champion_val_brier": 0.2125,
+   "champion_test_brier": 0.2066,
+   "market_test_brier": 0.2059,
+   "new_champion": true
+  },
+  {
+   "date": "2026-09-01",
    "games_in_data": 7261,
    "best_val_brier": 0.2125,
    "champion_val_brier": 0.2125,
@@ -295,10 +304,55 @@
   "ev": 0.018
  },
  "props": {
-  "prop_lines": 34,
-  "game_lines": 7062,
-  "last_snapshot": "2026-08-23T15:15:21+00:00",
+  "prop_lines": 243,
+  "game_lines": 10902,
+  "last_snapshot": "2026-08-30T18:20:48+00:00",
   "legs": [
+   {
+    "player": "DeVonta Smith",
+    "market": "receptions",
+    "side": "under",
+    "line": 5.5,
+    "price": -140,
+    "p_model": 0.856,
+    "edge": 0.31
+   },
+   {
+    "player": "Matthew Golden",
+    "market": "receptions",
+    "side": "under",
+    "line": 3.5,
+    "price": -130,
+    "p_model": 0.833,
+    "edge": 0.305
+   },
+   {
+    "player": "David Montgomery",
+    "market": "rush_yds",
+    "side": "under",
+    "line": 53.5,
+    "price": -114,
+    "p_model": 0.81,
+    "edge": 0.31
+   },
+   {
+    "player": "DeVonta Smith",
+    "market": "reception_yds",
+    "side": "under",
+    "line": 66.5,
+    "price": -114,
+    "p_model": 0.794,
+    "edge": 0.294
+   },
+   {
+    "player": "Rashid Shaheed",
+    "market": "receptions",
+    "side": "under",
+    "line": 2.5,
+    "price": -120,
+    "p_model": 0.792,
+    "edge": 0.277
+   },
    {
     "player": "Rashid Shaheed",
     "market": "receptions",
@@ -309,69 +363,33 @@
     "edge": 0.278
    },
    {
-    "player": "Rashid Shaheed",
+    "player": "Matthew Golden",
     "market": "reception_yds",
     "side": "under",
-    "line": 31.5,
+    "line": 38.5,
     "price": -114,
-    "p_model": 0.76,
-    "edge": 0.26
+    "p_model": 0.772,
+    "edge": 0.272
    },
    {
-    "player": "George Holani",
-    "market": "rush_yds",
-    "side": "under",
-    "line": 21.5,
-    "price": -114,
-    "p_model": 0.746,
-    "edge": 0.246
-   },
-   {
-    "player": "Deebo Samuel",
-    "market": "receptions",
-    "side": "over",
-    "line": 2.5,
-    "price": -140,
-    "p_model": 0.693,
-    "edge": 0.147
-   },
-   {
-    "player": "Jaxon Smith-Njigba",
-    "market": "reception_yds",
-    "side": "under",
-    "line": 84.5,
-    "price": -114,
-    "p_model": 0.687,
-    "edge": 0.187
-   },
-   {
-    "player": "Jaxon Smith-Njigba",
-    "market": "receptions",
-    "side": "under",
-    "line": 6.5,
-    "price": -130,
-    "p_model": 0.683,
-    "edge": 0.155
-   },
-   {
-    "player": "Puka Nacua",
-    "market": "receptions",
-    "side": "under",
-    "line": 7.5,
-    "price": -154,
-    "p_model": 0.657,
-    "edge": 0.09
-   },
-   {
-    "player": "Rhamondre Stevenson",
+    "player": "Woody Marks",
     "market": "rush_yds",
     "side": "over",
-    "line": 40.5,
+    "line": 30.5,
     "price": -114,
-    "p_model": 0.653,
-    "edge": 0.153
+    "p_model": 0.768,
+    "edge": 0.268
    }
   ],
-  "parlay": null
+  "parlay": {
+   "legs": [
+    "DeVonta Smith under 5.5 player_receptions",
+    "Matthew Golden under 3.5 player_receptions",
+    "David Montgomery under 53.5 player_rush_yds"
+   ],
+   "prob": 0.578,
+   "payout": 5.69,
+   "ev": 2.292
+  }
  }
 }
