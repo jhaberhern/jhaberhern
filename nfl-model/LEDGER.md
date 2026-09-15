@@ -2,23 +2,31 @@
 
 *Maintained automatically. 1 unit per pick at the moneyline available when logged. No real money — that's the point: this ledger is the evidence that decides whether real money ever makes sense.*
 
+## Season to date
+
+- **Record:** 11-5 (69%)
+- **Profit:** +1.4 units on 16 staked (ROI +9%)
+- **CLV:** +0.39% average, 50% of picks beat the close
+
+CLV (closing line value) is the tell: positive means the market moved toward our picks after we logged them. Sustained positive CLV is the only result here that would justify real stakes — a winning record without it is variance.
+
 ## Pending (16 picks)
 
 | game_id         | logged_date   | pick_team   |   model_prob |   logged_ml |
 |:----------------|:--------------|:------------|-------------:|------------:|
-| 2026_01_NE_SEA  | 2026-07-06    | SEA         |       0.6944 |        -198 |
-| 2026_01_SF_LA   | 2026-07-06    | LA          |       0.6383 |        -180 |
-| 2026_01_CHI_CAR | 2026-07-06    | CHI         |       0.5515 |        -135 |
-| 2026_01_TB_CIN  | 2026-07-06    | CIN         |       0.6289 |        -198 |
-| 2026_01_NO_DET  | 2026-07-06    | DET         |       0.6759 |        -340 |
-| 2026_01_BUF_HOU | 2026-07-06    | HOU         |       0.5996 |        -108 |
-| 2026_01_BAL_IND | 2026-07-06    | BAL         |       0.5812 |        -192 |
-| 2026_01_CLE_JAX | 2026-07-06    | JAX         |       0.8059 |        -340 |
-| 2026_01_ATL_PIT | 2026-07-06    | PIT         |       0.6379 |        -175 |
-| 2026_01_NYJ_TEN | 2026-07-06    | TEN         |       0.6991 |        -162 |
-| 2026_01_ARI_LAC | 2026-07-06    | LAC         |       0.7924 |        -650 |
-| 2026_01_MIA_LV  | 2026-07-06    | LV          |       0.5464 |        -175 |
-| 2026_01_GB_MIN  | 2026-07-06    | MIN         |       0.6209 |        -108 |
-| 2026_01_WAS_PHI | 2026-07-06    | PHI         |       0.7517 |        -238 |
-| 2026_01_DAL_NYG | 2026-07-06    | NYG         |       0.5749 |         110 |
-| 2026_01_DEN_KC  | 2026-07-06    | DEN         |       0.5441 |         124 |
+| 2026_02_DET_BUF | 2026-09-15    | BUF         |       0.6566 |        -218 |
+| 2026_02_CAR_ATL | 2026-09-15    | CAR         |       0.5999 |        -142 |
+| 2026_02_NO_BAL  | 2026-09-15    | BAL         |       0.7727 |        -410 |
+| 2026_02_MIN_CHI | 2026-09-15    | CHI         |       0.6647 |        -225 |
+| 2026_02_CIN_HOU | 2026-09-15    | HOU         |       0.5925 |        -142 |
+| 2026_02_PIT_NE  | 2026-09-15    | NE          |       0.6887 |        -230 |
+| 2026_02_GB_NYJ  | 2026-09-15    | GB          |       0.6551 |        -205 |
+| 2026_02_CLE_TB  | 2026-09-15    | TB          |       0.7703 |        -410 |
+| 2026_02_PHI_TEN | 2026-09-15    | PHI         |       0.7349 |        -305 |
+| 2026_02_JAX_DEN | 2026-09-15    | DEN         |       0.5902 |        -135 |
+| 2026_02_LV_LAC  | 2026-09-15    | LAC         |       0.7175 |        -310 |
+| 2026_02_SEA_ARI | 2026-09-15    | SEA         |       0.6827 |        -225 |
+| 2026_02_WAS_DAL | 2026-09-15    | DAL         |       0.6037 |        -225 |
+| 2026_02_MIA_SF  | 2026-09-15    | SF          |       0.8567 |        -950 |
+| 2026_02_IND_KC  | 2026-09-15    | KC          |       0.7174 |        -305 |
+| 2026_02_NYG_LA  | 2026-09-15    | LA          |       0.7379 |        -355 |
